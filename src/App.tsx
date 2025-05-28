@@ -27,60 +27,10 @@ function App() {
   //   });
   // };
 
-  useEffect(() => {
-    document.querySelectorAll("div.group\\/conversation-turn").forEach((el) => {
-      const button = document.createElement("button");
-      button.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" height="16" width="16" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-right: 6px;" viewBox="0 0 16 16">
-          <path d="M2 2h12v12l-6-3-6 3V2z"/>
-        </svg>
-        Bookmark
-      `;
-      Object.assign(button.style, {
-        display: "inline-flex",
-        alignItems: "center",
-        border: "1px solid #ccc",
-        padding: "4px 8px",
-        marginTop: "10px",
-        cursor: "pointer",
-        background: "#fff",
-        borderRadius: "4px",
-        fontSize: "14px",
-        width: "100px",
-        position: "relative",
-      });
+  // useEffect(() => {
 
-      const hoverCard = document.createElement("div");
-      Object.assign(hoverCard.style, {
-        position: "absolute",
-        top: "100%",
-        left: "0",
-        zIndex: "9999",
-        background: "#fff",
-        border: "1px solid #ccc",
-        borderRadius: "4px",
-        boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
-        padding: "10px",
-        marginTop: "5px",
-        maxWidth: "400px",
-        display: "none",
-        overflow: "auto",
-        maxHeight: "300px",
-      });
-      hoverCard.innerHTML = el.innerHTML;
-
-      button.appendChild(hoverCard);
-
-      button.addEventListener("mouseenter", () => {
-        hoverCard.style.display = "block";
-      });
-      button.addEventListener("mouseleave", () => {
-        hoverCard.style.display = "none";
-      });
-
-      el.appendChild(button);
-    });
-  }, []);
+  //   });
+  // }, []);
 
   return (
     <>
