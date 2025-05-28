@@ -68,15 +68,26 @@ function processElements() {
   console.log("Found", elements.length, "conversation turns");
 
   elements.forEach((el, index) => {
-    console.log(`Processing element ${index}:`, el);
-    // Only add button if it doesn't already have our specific button
-    if (!el.querySelector(".chatgpt-bookmark-button")) {
-      console.log(
-        `Element ${index} doesn't have a bookmark button, adding one`
+    // Find the parent article to get the turn number
+    const article = el.closest('article[data-testid^="conversation-turn-"]');
+    if (article) {
+      const turnNumber = parseInt(
+        article.getAttribute("data-testid").split("-").pop()
       );
-      addBookmarkButton(el);
-    } else {
-      console.log(`Element ${index} already has a bookmark button`);
+
+      // Only process even-numbered turns (ChatGPT responses)
+      if (turnNumber % 2 === 0) {
+        console.log(`Processing ChatGPT response turn ${turnNumber}:`, el);
+        // Only add button if it doesn't already have our specific button
+        if (!el.querySelector(".chatgpt-bookmark-button")) {
+          console.log(
+            `Turn ${turnNumber} doesn't have a bookmark button, adding one`
+          );
+          addBookmarkButton(el);
+        } else {
+          console.log(`Turn ${turnNumber} already has a bookmark button`);
+        }
+      }
     }
   });
 }
