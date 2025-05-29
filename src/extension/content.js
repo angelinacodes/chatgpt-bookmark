@@ -1,42 +1,106 @@
 // Content script for ChatGPT Bookmark extension
 console.log("ChatGPT Bookmark extension loaded!!");
 
+// Make icons available globally
+const bookmarkIcon = `
+  <svg xmlns="http://www.w3.org/2000/svg" height="16" width="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 16 16">
+    <path d="M2 2h12v12l-6-3-6 3V2z"/>
+  </svg>
+`;
+
+const closeIcon = `
+  <svg xmlns="http://www.w3.org/2000/svg" height="16" width="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 16 16">
+    <path d="M4 4l8 8m0-8l-8 8"/>
+  </svg>
+`;
+
 // Create and add floating bookmark list
 function createBookmarkList() {
-  const container = document.createElement("div");
-  Object.assign(container.style, {
+  // Create toggle button
+  const toggleBtn = document.createElement("button");
+  Object.assign(toggleBtn.style, {
     position: "fixed",
-    top: "20px",
+    top: "56px",
     right: "20px",
     background: "white",
     border: "1px solid #ccc",
-    borderRadius: "8px",
-    padding: "10px",
-    maxHeight: "80vh",
+    borderRadius: "6px",
+    padding: "6px",
+    cursor: "pointer",
+    zIndex: "10000",
+    boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  });
+
+  // Start with the list hidden, but if it's shown, use X icon and no border
+  let isListVisible = false;
+  toggleBtn.innerHTML = bookmarkIcon;
+  toggleBtn.title = "Show Bookmarks";
+
+  const container = document.createElement("div");
+  Object.assign(container.style, {
+    position: "fixed",
+    top: "56px",
+    right: "20px",
+    background: "white",
+    border: "1px solid #ccc",
+    borderRadius: "6px",
+    padding: "8px",
+    maxHeight: "70vh",
     overflowY: "auto",
     zIndex: "9999",
     boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
-    minWidth: "200px",
+    minWidth: "180px",
+    fontSize: "13px",
+    display: "none",
   });
 
   const title = document.createElement("h3");
   title.textContent = "Bookmarks";
-  title.style.margin = "0 0 10px 0";
+  Object.assign(title.style, {
+    margin: "0 0 8px 0",
+    fontSize: "14px",
+    fontWeight: "500",
+  });
   container.appendChild(title);
 
   const list = document.createElement("div");
   list.id = "bookmark-list";
   container.appendChild(list);
 
+  // Add toggle functionality
+  toggleBtn.addEventListener("click", () => {
+    isListVisible = container.style.display !== "block";
+    container.style.display = isListVisible ? "block" : "none";
+    toggleBtn.title = isListVisible ? "Hide Bookmarks" : "Show Bookmarks";
+    toggleBtn.innerHTML = isListVisible ? closeIcon : bookmarkIcon;
+    toggleBtn.style.border = isListVisible ? "none" : "1px solid #ccc";
+    // Remove background and shadow when open
+    if (isListVisible) {
+      toggleBtn.style.backgroundColor = "transparent";
+      toggleBtn.style.boxShadow = "none";
+    } else {
+      toggleBtn.style.backgroundColor = "white";
+      toggleBtn.style.boxShadow = "0 2px 10px rgba(0,0,0,0.1)";
+    }
+  });
+
+  document.body.appendChild(toggleBtn);
   document.body.appendChild(container);
-  return container;
+  return { container, toggleBtn };
 }
 
 // Update bookmark list with current bookmarks
 function updateBookmarkList() {
   const conversationId = window.location.pathname.split("/").pop();
   const list = document.getElementById("bookmark-list");
-  if (!list) return;
+  const container = list?.parentElement;
+  const toggleBtn = document.querySelector(
+    'button[title^="Show Bookmarks"],button[title^="Hide Bookmarks"]'
+  );
+  if (!list || !container || !toggleBtn) return;
 
   window.ChatGPTBookmarks.openBookmarksDB((db) => {
     window.ChatGPTBookmarks.getBookmarksForConversation(
@@ -46,97 +110,115 @@ function updateBookmarkList() {
         list.innerHTML = "";
 
         if (bookmarks.length === 0) {
-          const emptyMessage = document.createElement("div");
-          emptyMessage.textContent = "No bookmarks yet";
-          emptyMessage.style.color = "#666";
-          list.appendChild(emptyMessage);
+          container.style.display = "none";
+          // When hiding, show bookmark icon and border
+          toggleBtn.innerHTML = bookmarkIcon;
+          toggleBtn.title = "Show Bookmarks";
+          toggleBtn.style.border = "1px solid #ccc";
+          toggleBtn.style.backgroundColor = "white";
           return;
         }
 
-        bookmarks.forEach((bookmark) => {
-          const item = document.createElement("div");
-          Object.assign(item.style, {
-            padding: "8px",
-            borderBottom: "1px solid #eee",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            position: "relative",
-          });
+        // Show container if we have bookmarks
+        container.style.display = "block";
+        // When showing, use X icon and no border
+        toggleBtn.innerHTML = closeIcon;
+        toggleBtn.title = "Hide Bookmarks";
+        toggleBtn.style.border = "none";
+        toggleBtn.style.backgroundColor = "transparent";
+        toggleBtn.style.boxShadow = "none";
 
-          const icon = document.createElement("div");
-          icon.innerHTML = `
-          <svg xmlns="http://www.w3.org/2000/svg" height="16" width="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 16 16">
-            <path d="M2 2h12v12l-6-3-6 3V2z"/>
-          </svg>
-        `;
-          item.appendChild(icon);
-
-          const text = document.createElement("span");
-          text.textContent = bookmark.name || `Bookmark ${bookmark.turnIndex}`;
-          item.appendChild(text);
-
-          // Add delete button
-          const deleteBtn = document.createElement("button");
-          Object.assign(deleteBtn.style, {
-            position: "absolute",
-            right: "8px",
-            top: "50%",
-            transform: "translateY(-50%)",
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            padding: "4px",
-            color: "#666",
-            display: "none",
-          });
-          deleteBtn.innerHTML = "×";
-          deleteBtn.title = "Delete bookmark";
-
-          deleteBtn.addEventListener("click", (e) => {
-            e.stopPropagation(); // Prevent triggering the bookmark click
-            window.ChatGPTBookmarks.openBookmarksDB((db) => {
-              window.ChatGPTBookmarks.deleteBookmark(db, bookmark.id);
-              updateBookmarkList(); // Refresh the list after deletion
+        bookmarks
+          .slice()
+          .sort((a, b) => a.turnIndex - b.turnIndex)
+          .forEach((bookmark) => {
+            const item = document.createElement("div");
+            Object.assign(item.style, {
+              padding: "6px",
+              borderBottom: "1px solid #eee",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              position: "relative",
+              fontSize: "12px",
             });
-          });
 
-          item.appendChild(deleteBtn);
+            const icon = document.createElement("div");
+            icon.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" height="14" width="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 16 16">
+              <path d="M2 2h12v12l-6-3-6 3V2z"/>
+            </svg>
+          `;
+            item.appendChild(icon);
 
-          // Show delete button on hover
-          item.addEventListener("mouseenter", () => {
-            deleteBtn.style.display = "block";
-          });
-          item.addEventListener("mouseleave", () => {
-            deleteBtn.style.display = "none";
-          });
+            const text = document.createElement("span");
+            text.textContent =
+              bookmark.name || `Bookmark ${bookmark.turnIndex}`;
+            item.appendChild(text);
 
-          item.addEventListener("click", () => {
-            const targetElement = document.querySelector(
-              `[data-testid="conversation-turn-${bookmark.turnIndex}"]`
-            );
-            if (targetElement) {
-              targetElement.scrollIntoView({
-                behavior: "smooth",
-                block: "center",
+            // Add delete button
+            const deleteBtn = document.createElement("button");
+            Object.assign(deleteBtn.style, {
+              position: "absolute",
+              right: "6px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: "2px 4px",
+              color: "#666",
+              display: "none",
+              fontSize: "14px",
+            });
+            deleteBtn.innerHTML = "×";
+            deleteBtn.title = "Delete bookmark";
+
+            deleteBtn.addEventListener("click", (e) => {
+              e.stopPropagation(); // Prevent triggering the bookmark click
+              window.ChatGPTBookmarks.openBookmarksDB((db) => {
+                window.ChatGPTBookmarks.deleteBookmark(db, bookmark.id);
+                updateBookmarkList(); // Refresh the list after deletion
               });
-              targetElement.style.backgroundColor = "#fff3cd";
-              setTimeout(() => {
-                targetElement.style.backgroundColor = "";
-              }, 2000);
-            }
-          });
+            });
 
-          list.appendChild(item);
-        });
+            item.appendChild(deleteBtn);
+
+            // Show delete button on hover
+            item.addEventListener("mouseenter", () => {
+              deleteBtn.style.display = "block";
+            });
+            item.addEventListener("mouseleave", () => {
+              deleteBtn.style.display = "none";
+            });
+
+            item.addEventListener("click", () => {
+              const targetElement = document.querySelector(
+                `[data-testid="conversation-turn-${bookmark.turnIndex}"]`
+              );
+              if (targetElement) {
+                // Scroll to the top of the element
+                targetElement.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start",
+                });
+                targetElement.style.backgroundColor = "#fff3cd";
+                setTimeout(() => {
+                  targetElement.style.backgroundColor = "";
+                }, 2000);
+              }
+            });
+
+            list.appendChild(item);
+          });
       }
     );
   });
 }
 
 // Create bookmark list on page load
-const bookmarkList = createBookmarkList();
+const { container: bookmarkList } = createBookmarkList();
 updateBookmarkList();
 
 // Watch for URL changes
@@ -173,34 +255,7 @@ function addBookmarkButton(el, turnNumber) {
     position: "relative",
   });
 
-  const hoverCard = document.createElement("div");
-  Object.assign(hoverCard.style, {
-    position: "absolute",
-    top: "100%",
-    left: "0",
-    zIndex: "9999",
-    background: "#fff",
-    border: "1px solid #ccc",
-    borderRadius: "4px",
-    boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
-    padding: "10px",
-    marginTop: "5px",
-    maxWidth: "400px",
-    display: "none",
-    overflow: "auto",
-    maxHeight: "300px",
-  });
-  hoverCard.innerHTML = el.innerHTML;
-
-  button.appendChild(hoverCard);
-
-  button.addEventListener("mouseenter", () => {
-    hoverCard.style.display = "block";
-  });
-  button.addEventListener("mouseleave", () => {
-    hoverCard.style.display = "none";
-  });
-
+  // Remove hover card logic
   // Add click handler to save bookmark
   button.addEventListener("click", () => {
     // Get conversation ID from URL
@@ -210,7 +265,7 @@ function addBookmarkButton(el, turnNumber) {
       window.ChatGPTBookmarks.saveBookmark(db, {
         conversationId,
         turnIndex: turnNumber,
-        // name: `ChatGPT Response ${turnNumber}`,
+        name: `Response ${turnNumber / 2}`,
       });
 
       // Update bookmark list after saving
