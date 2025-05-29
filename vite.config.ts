@@ -12,6 +12,10 @@ export default defineConfig({
           src: "src/extension/content.js",
           dest: "", // outputs to /dist/content.js
         },
+        {
+          src: "src/extension/store.js",
+          dest: "", // outputs to /dist/store.js
+        },
       ],
     }),
   ],

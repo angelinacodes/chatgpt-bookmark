@@ -15,12 +15,12 @@
     "48": "palette.png",
     "128": "palette.png"
   },
-  "permissions": ["scripting"],
+  "permissions": ["scripting", "storage"],
   "host_permissions": ["<all_urls>"],
   "content_scripts": [
     {
       "matches": ["https://chatgpt.com/*"],
-      "js": ["content.js"],
+      "js": ["/store.js", "/content.js"],
       "run_at": "document_idle"
     }
   ]

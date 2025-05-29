@@ -2,8 +2,7 @@
 console.log("ChatGPT Bookmark extension loaded!!");
 
 // Function to add bookmark button to a conversation turn
-function addBookmarkButton(el) {
-  console.log("Adding bookmark button to element:", el);
+function addBookmarkButton(el, turnNumber) {
   const button = document.createElement("button");
   button.className = "chatgpt-bookmark-button";
   button.innerHTML = `
@@ -54,9 +53,22 @@ function addBookmarkButton(el) {
     hoverCard.style.display = "none";
   });
 
+  // Add click handler to save bookmark
+  button.addEventListener("click", () => {
+    // Get conversation ID from URL
+    const conversationId = window.location.pathname.split("/").pop();
+
+    window.ChatGPTBookmarks.openBookmarksDB((db) => {
+      window.ChatGPTBookmarks.saveBookmark(db, {
+        conversationId,
+        turnIndex: turnNumber,
+        // name: `ChatGPT Response ${turnNumber}`,
+      });
+    });
+  });
+
   try {
     el.appendChild(button);
-    console.log("Successfully appended button to element");
   } catch (error) {
     console.error("Failed to append button:", error);
   }
@@ -65,7 +77,6 @@ function addBookmarkButton(el) {
 // Function to process all matching elements
 function processElements() {
   const elements = document.querySelectorAll("div.group\\/conversation-turn");
-  console.log("Found", elements.length, "conversation turns");
 
   elements.forEach((el, index) => {
     // Find the parent article to get the turn number
@@ -77,15 +88,9 @@ function processElements() {
 
       // Only process even-numbered turns (ChatGPT responses)
       if (turnNumber % 2 === 0) {
-        console.log(`Processing ChatGPT response turn ${turnNumber}:`, el);
         // Only add button if it doesn't already have our specific button
         if (!el.querySelector(".chatgpt-bookmark-button")) {
-          console.log(
-            `Turn ${turnNumber} doesn't have a bookmark button, adding one`
-          );
-          addBookmarkButton(el);
-        } else {
-          console.log(`Turn ${turnNumber} already has a bookmark button`);
+          addBookmarkButton(el, turnNumber);
         }
       }
     }
@@ -93,15 +98,12 @@ function processElements() {
 }
 
 // Initial processing
-console.log("Starting initial processing");
 processElements();
 
 // Set up MutationObserver to watch for new conversation turns
 const observer = new MutationObserver((mutations) => {
-  console.log("Mutation detected:", mutations);
   for (const mutation of mutations) {
     if (mutation.addedNodes.length) {
-      console.log("New nodes added, reprocessing elements");
       processElements();
       break;
     }
@@ -109,7 +111,6 @@ const observer = new MutationObserver((mutations) => {
 });
 
 // Start observing the document body for changes
-console.log("Setting up MutationObserver");
 observer.observe(document.body, {
   childList: true,
   subtree: true,
