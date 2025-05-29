@@ -1,6 +1,18 @@
 // Content script for ChatGPT Bookmark extension
 console.log("ChatGPT Bookmark extension loaded!!");
 
+// Log all bookmarks in IndexedDB
+window.ChatGPTBookmarks.openBookmarksDB((db) => {
+  const tx = db.transaction("bookmarks", "readonly");
+  const store = tx.objectStore("bookmarks");
+  const request = store.getAll();
+
+  request.onsuccess = () => {
+    const bookmarks = request.result;
+    console.log("Current bookmarks in IndexedDB:", bookmarks);
+  };
+});
+
 // Function to add bookmark button to a conversation turn
 function addBookmarkButton(el, turnNumber) {
   const button = document.createElement("button");
@@ -64,6 +76,16 @@ function addBookmarkButton(el, turnNumber) {
         turnIndex: turnNumber,
         // name: `ChatGPT Response ${turnNumber}`,
       });
+
+      // Log updated bookmarks after saving
+      const tx = db.transaction("bookmarks", "readonly");
+      const store = tx.objectStore("bookmarks");
+      const request = store.getAll();
+
+      request.onsuccess = () => {
+        const bookmarks = request.result;
+        console.log("Updated bookmarks in IndexedDB:", bookmarks);
+      };
     });
   });
 

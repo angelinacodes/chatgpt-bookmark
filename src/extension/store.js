@@ -110,6 +110,31 @@ function updateBookmarkName(db, id, newName) {
   };
 }
 
+// Log all bookmarks in the database
+function logAllBookmarks() {
+  openBookmarksDB((db) => {
+    const tx = db.transaction("bookmarks", "readonly");
+    const store = tx.objectStore("bookmarks");
+    const request = store.getAll();
+
+    request.onsuccess = () => {
+      const bookmarks = request.result;
+      console.log("All saved bookmarks:", bookmarks);
+
+      // Group bookmarks by conversation
+      const byConversation = bookmarks.reduce((acc, bookmark) => {
+        if (!acc[bookmark.conversationId]) {
+          acc[bookmark.conversationId] = [];
+        }
+        acc[bookmark.conversationId].push(bookmark);
+        return acc;
+      }, {});
+
+      console.log("Bookmarks grouped by conversation:", byConversation);
+    };
+  });
+}
+
 // Example usage
 // openBookmarksDB((db) => {
 //   saveBookmark(db, {
@@ -131,4 +156,5 @@ window.ChatGPTBookmarks = {
   saveBookmark,
   getBookmarksForConversation,
   updateBookmarkName,
+  logAllBookmarks,
 };
