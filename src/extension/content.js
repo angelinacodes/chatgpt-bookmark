@@ -1,17 +1,153 @@
 // Content script for ChatGPT Bookmark extension
 console.log("ChatGPT Bookmark extension loaded!!");
 
-// Log all bookmarks in IndexedDB
-window.ChatGPTBookmarks.openBookmarksDB((db) => {
-  const tx = db.transaction("bookmarks", "readonly");
-  const store = tx.objectStore("bookmarks");
-  const request = store.getAll();
+// Create and add floating bookmark list
+function createBookmarkList() {
+  const container = document.createElement("div");
+  Object.assign(container.style, {
+    position: "fixed",
+    top: "20px",
+    right: "20px",
+    background: "white",
+    border: "1px solid #ccc",
+    borderRadius: "8px",
+    padding: "10px",
+    maxHeight: "80vh",
+    overflowY: "auto",
+    zIndex: "9999",
+    boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+    minWidth: "200px",
+  });
 
-  request.onsuccess = () => {
-    const bookmarks = request.result;
-    console.log("Current bookmarks in IndexedDB:", bookmarks);
-  };
-});
+  const title = document.createElement("h3");
+  title.textContent = "Bookmarks";
+  title.style.margin = "0 0 10px 0";
+  container.appendChild(title);
+
+  const list = document.createElement("div");
+  list.id = "bookmark-list";
+  container.appendChild(list);
+
+  document.body.appendChild(container);
+  return container;
+}
+
+// Update bookmark list with current bookmarks
+function updateBookmarkList() {
+  const conversationId = window.location.pathname.split("/").pop();
+  const list = document.getElementById("bookmark-list");
+  if (!list) return;
+
+  window.ChatGPTBookmarks.openBookmarksDB((db) => {
+    window.ChatGPTBookmarks.getBookmarksForConversation(
+      db,
+      conversationId,
+      (bookmarks) => {
+        list.innerHTML = "";
+
+        if (bookmarks.length === 0) {
+          const emptyMessage = document.createElement("div");
+          emptyMessage.textContent = "No bookmarks yet";
+          emptyMessage.style.color = "#666";
+          list.appendChild(emptyMessage);
+          return;
+        }
+
+        bookmarks.forEach((bookmark) => {
+          const item = document.createElement("div");
+          Object.assign(item.style, {
+            padding: "8px",
+            borderBottom: "1px solid #eee",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            position: "relative",
+          });
+
+          const icon = document.createElement("div");
+          icon.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" height="16" width="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 16 16">
+            <path d="M2 2h12v12l-6-3-6 3V2z"/>
+          </svg>
+        `;
+          item.appendChild(icon);
+
+          const text = document.createElement("span");
+          text.textContent = bookmark.name || `Bookmark ${bookmark.turnIndex}`;
+          item.appendChild(text);
+
+          // Add delete button
+          const deleteBtn = document.createElement("button");
+          Object.assign(deleteBtn.style, {
+            position: "absolute",
+            right: "8px",
+            top: "50%",
+            transform: "translateY(-50%)",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            padding: "4px",
+            color: "#666",
+            display: "none",
+          });
+          deleteBtn.innerHTML = "×";
+          deleteBtn.title = "Delete bookmark";
+
+          deleteBtn.addEventListener("click", (e) => {
+            e.stopPropagation(); // Prevent triggering the bookmark click
+            window.ChatGPTBookmarks.openBookmarksDB((db) => {
+              window.ChatGPTBookmarks.deleteBookmark(db, bookmark.id);
+              updateBookmarkList(); // Refresh the list after deletion
+            });
+          });
+
+          item.appendChild(deleteBtn);
+
+          // Show delete button on hover
+          item.addEventListener("mouseenter", () => {
+            deleteBtn.style.display = "block";
+          });
+          item.addEventListener("mouseleave", () => {
+            deleteBtn.style.display = "none";
+          });
+
+          item.addEventListener("click", () => {
+            const targetElement = document.querySelector(
+              `[data-testid="conversation-turn-${bookmark.turnIndex}"]`
+            );
+            if (targetElement) {
+              targetElement.scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+              });
+              targetElement.style.backgroundColor = "#fff3cd";
+              setTimeout(() => {
+                targetElement.style.backgroundColor = "";
+              }, 2000);
+            }
+          });
+
+          list.appendChild(item);
+        });
+      }
+    );
+  });
+}
+
+// Create bookmark list on page load
+const bookmarkList = createBookmarkList();
+updateBookmarkList();
+
+// Watch for URL changes
+let lastUrl = location.href;
+new MutationObserver(() => {
+  const currentUrl = location.href;
+  if (currentUrl !== lastUrl) {
+    lastUrl = currentUrl;
+    updateBookmarkList();
+  }
+}).observe(document, { subtree: true, childList: true });
 
 // Function to add bookmark button to a conversation turn
 function addBookmarkButton(el, turnNumber) {
@@ -77,15 +213,8 @@ function addBookmarkButton(el, turnNumber) {
         // name: `ChatGPT Response ${turnNumber}`,
       });
 
-      // Log updated bookmarks after saving
-      const tx = db.transaction("bookmarks", "readonly");
-      const store = tx.objectStore("bookmarks");
-      const request = store.getAll();
-
-      request.onsuccess = () => {
-        const bookmarks = request.result;
-        console.log("Updated bookmarks in IndexedDB:", bookmarks);
-      };
+      // Update bookmark list after saving
+      updateBookmarkList();
     });
   });
 

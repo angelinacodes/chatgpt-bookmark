@@ -135,6 +135,22 @@ function logAllBookmarks() {
   });
 }
 
+// Delete a bookmark by its ID
+function deleteBookmark(db, id) {
+  const tx = db.transaction("bookmarks", "readwrite");
+  const store = tx.objectStore("bookmarks");
+
+  store.delete(id);
+
+  tx.oncomplete = () => {
+    console.log("Bookmark deleted:", id);
+  };
+
+  tx.onerror = (event) => {
+    console.error("Error deleting bookmark:", event.target.error);
+  };
+}
+
 // Example usage
 // openBookmarksDB((db) => {
 //   saveBookmark(db, {
@@ -157,4 +173,5 @@ window.ChatGPTBookmarks = {
   getBookmarksForConversation,
   updateBookmarkName,
   logAllBookmarks,
+  deleteBookmark,
 };
