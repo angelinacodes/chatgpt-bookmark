@@ -155,45 +155,113 @@ function updateBookmarkList() {
             const text = document.createElement("span");
             text.textContent =
               bookmark.name || `Bookmark ${bookmark.turnIndex}`;
+            text.style.flex = "1";
             item.appendChild(text);
+
+            // Button container for edit and delete
+            const btnContainer = document.createElement("div");
+            btnContainer.style.display = "flex";
+            btnContainer.style.alignItems = "center";
+            btnContainer.style.gap = "2px";
+            btnContainer.style.marginLeft = "6px";
+
+            // Add edit (pencil) button
+            const editBtn = document.createElement("button");
+            Object.assign(editBtn.style, {
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "#888",
+              fontSize: "14px",
+              padding: "2px 4px",
+              display: "none",
+            });
+            editBtn.innerHTML = `
+              <svg xmlns="http://www.w3.org/2000/svg" height="14" width="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 16 16">
+                <path d="M3 13l2.5-2.5M13 3l-8.5 8.5M11.5 2.5a2.121 2.121 0 1 1 3 3L5 15H2v-3L11.5 2.5z"/>
+              </svg>
+            `;
+            editBtn.title = "Edit bookmark name";
+            btnContainer.appendChild(editBtn);
+
+            editBtn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              // Replace text with input
+              const input = document.createElement("input");
+              input.type = "text";
+              input.value = bookmark.name || `Bookmark ${bookmark.turnIndex}`;
+              input.style.fontSize = "12px";
+              input.style.flex = "1";
+              input.style.marginLeft = "4px";
+              input.style.padding = "2px 4px";
+              input.style.border = "1px solid #ccc";
+              input.style.borderRadius = "3px";
+              item.replaceChild(input, text);
+              input.focus();
+              input.select();
+
+              function saveEdit() {
+                const newName =
+                  input.value.trim() || `Bookmark ${bookmark.turnIndex}`;
+                window.ChatGPTBookmarks.openBookmarksDB((db) => {
+                  window.ChatGPTBookmarks.updateBookmarkName(
+                    db,
+                    bookmark.id,
+                    newName
+                  );
+                  updateBookmarkList();
+                });
+              }
+
+              input.addEventListener("blur", saveEdit);
+              input.addEventListener("keydown", (ev) => {
+                if (ev.key === "Enter") {
+                  input.blur();
+                } else if (ev.key === "Escape") {
+                  updateBookmarkList();
+                }
+              });
+            });
 
             // Add delete button
             const deleteBtn = document.createElement("button");
             Object.assign(deleteBtn.style, {
-              position: "absolute",
-              right: "6px",
-              top: "50%",
-              transform: "translateY(-50%)",
               background: "none",
               border: "none",
               cursor: "pointer",
               padding: "2px 4px",
               color: "#666",
-              display: "none",
               fontSize: "14px",
+              display: "none",
             });
             deleteBtn.innerHTML = "×";
             deleteBtn.title = "Delete bookmark";
+            deleteBtn.id = `delete-bookmark-btn-${bookmark.id}`;
+            btnContainer.appendChild(deleteBtn);
 
-            deleteBtn.addEventListener("click", (e) => {
-              e.stopPropagation(); // Prevent triggering the bookmark click
-              window.ChatGPTBookmarks.openBookmarksDB((db) => {
-                window.ChatGPTBookmarks.deleteBookmark(db, bookmark.id);
-                updateBookmarkList(); // Refresh the list after deletion
-              });
-            });
-
-            item.appendChild(deleteBtn);
-
-            // Show delete button on hover
+            // Show/hide both icons on hover
             item.addEventListener("mouseenter", () => {
+              editBtn.style.display = "block";
               deleteBtn.style.display = "block";
             });
             item.addEventListener("mouseleave", () => {
+              editBtn.style.display = "none";
               deleteBtn.style.display = "none";
             });
 
-            item.addEventListener("click", () => {
+            item.appendChild(btnContainer);
+
+            item.addEventListener("click", (event) => {
+              if (event.target.id === `delete-bookmark-btn-${bookmark.id}`) {
+                window.ChatGPTBookmarks.openBookmarksDB((db) => {
+                  window.ChatGPTBookmarks.deleteBookmark(db, bookmark.id);
+                  updateBookmarkList();
+                });
+
+                return;
+              }
+              // Only scroll if the click did NOT originate from a button (edit or delete)
+              // if (event.target.closest("button")) return;
               const targetElement = document.querySelector(
                 `[data-testid="conversation-turn-${bookmark.turnIndex}"]`
               );
