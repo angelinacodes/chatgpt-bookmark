@@ -314,7 +314,7 @@ function addBookmarkButton(el, turnNumber) {
   const button = document.createElement("button");
   button.className = "chatgpt-bookmark-button";
   button.innerHTML = `
-    ${solidBookmarkIcon} Bookmark
+    ${solidBookmarkIcon}&nbsp;Bookmark
   `;
   Object.assign(button.style, {
     display: "inline-flex",
