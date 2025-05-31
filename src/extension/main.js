@@ -1,16 +1,28 @@
 // Content script for ChatGPT Bookmark extension
 console.log("ChatGPT Bookmark extension loaded!!");
 
-// Make icons available globally
-const bookmarkIcon = `
-  <svg xmlns="http://www.w3.org/2000/svg" height="16" width="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 16 16">
-    <path d="M2 2h12v12l-6-3-6 3V2z"/>
+// Solid orange bookmark with white star (for toggle and add button)
+const solidBookmarkIcon = `
+  <svg width="16" height="22" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0,0 h100 v120 l-50,-30 l-50,30 z" fill="#F4A300" />
+    <polygon fill="white" points="50,22 58,42 78,42 62,56 68,76 50,64 32,76 38,56 22,42 42,42" />
   </svg>
 `;
 
+// Hollow yellow bookmark with white star (for floating list)
+const hollowBookmarkIcon = `
+  <svg xmlns="http://www.w3.org/2000/svg" height="14" width="14" viewBox="0 0 24 24">
+    <path fill="none" stroke="#FFA500" stroke-width="2" d="M5 3a2 2 0 0 0-2 2v16l9-4 9 4V5a2 2 0 0 0-2-2H5z"/>
+    <path fill="#fff" d="M12 8.5l1.45 2.95 3.25.47-2.35 2.29.56 3.24L12 15.27l-2.91 1.53.56-3.24-2.35-2.29 3.25-.47z"/>
+  </svg>
+`;
+
+const bookmarkIcon = solidBookmarkIcon;
+
+// Chevron up icon for minimize
 const closeIcon = `
-  <svg xmlns="http://www.w3.org/2000/svg" height="16" width="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 16 16">
-    <path d="M4 4l8 8m0-8l-8 8"/>
+  <svg xmlns="http://www.w3.org/2000/svg" height="16" width="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 16 16">
+    <polyline points="4 10 8 6 12 10" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>
 `;
 
@@ -32,11 +44,13 @@ function createBookmarkList() {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+    height: "32px",
+    width: "32px",
   });
 
   // Start with the list hidden, but if it's shown, use X icon and no border
   let isListVisible = false;
-  toggleBtn.innerHTML = bookmarkIcon;
+  toggleBtn.innerHTML = solidBookmarkIcon;
   toggleBtn.title = "Show Bookmarks";
 
   const container = document.createElement("div");
@@ -75,7 +89,7 @@ function createBookmarkList() {
     isListVisible = container.style.display !== "block";
     container.style.display = isListVisible ? "block" : "none";
     toggleBtn.title = isListVisible ? "Hide Bookmarks" : "Show Bookmarks";
-    toggleBtn.innerHTML = isListVisible ? closeIcon : bookmarkIcon;
+    toggleBtn.innerHTML = isListVisible ? closeIcon : solidBookmarkIcon;
     toggleBtn.style.border = isListVisible ? "none" : "1px solid #ccc";
     // Remove background and shadow when open
     if (isListVisible) {
@@ -112,7 +126,7 @@ function updateBookmarkList() {
         if (bookmarks.length === 0) {
           container.style.display = "none";
           // When hiding, show bookmark icon and border
-          toggleBtn.innerHTML = bookmarkIcon;
+          toggleBtn.innerHTML = solidBookmarkIcon;
           toggleBtn.title = "Show Bookmarks";
           toggleBtn.style.border = "1px solid #ccc";
           toggleBtn.style.backgroundColor = "white";
@@ -145,11 +159,7 @@ function updateBookmarkList() {
             });
 
             const icon = document.createElement("div");
-            icon.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" height="14" width="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 16 16">
-              <path d="M2 2h12v12l-6-3-6 3V2z"/>
-            </svg>
-          `;
+            icon.innerHTML = hollowBookmarkIcon;
             item.appendChild(icon);
 
             const text = document.createElement("span");
@@ -304,10 +314,7 @@ function addBookmarkButton(el, turnNumber) {
   const button = document.createElement("button");
   button.className = "chatgpt-bookmark-button";
   button.innerHTML = `
-    <svg xmlns="http://www.w3.org/2000/svg" height="16" width="16" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-right: 6px;" viewBox="0 0 16 16">
-      <path d="M2 2h12v12l-6-3-6 3V2z"/>
-    </svg>
-    Bookmark
+    ${solidBookmarkIcon} Bookmark
   `;
   Object.assign(button.style, {
     display: "inline-flex",
