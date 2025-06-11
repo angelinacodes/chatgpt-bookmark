@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "ChatGPT Bookmark",
+  "name": "Bookmark ChatGPT Answers",
   "version": "1.0.0",
-  "description": "Description stub",
+  "description": "This extension allows you to bookmark ChatGPT answers and easily navigate back to them.",
   "action": {
-    "default_title": "Click me!",
+    "default_title": "",
     "default_popup": "index.html"
   },
   "background": {
